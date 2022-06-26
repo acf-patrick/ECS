@@ -24,7 +24,7 @@ CORE 	= 	core/ecs/component/manager.cpp\
 
 CLIENT 	= 	test.cpp
 
-HEADER 	=  	3rd-party/ core/
+HEADER 	=  	-I3rd-party/ -Icore/
 LIBS 	= 	libs/
 
 SDL 	= 	-lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer
@@ -47,7 +47,7 @@ all : obj
 obj: $(SRC)
 	@echo "... Compiling ..."
 	@mkdir -p obj
-	$(CXX) $(CFLAGS) -I $(HEADER) -c $?
+	$(CXX) $(CFLAGS) -c $? $(HEADER)
 	@mv *.o obj/
 
 clean:

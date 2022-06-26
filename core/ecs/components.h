@@ -19,6 +19,7 @@
 #include "baseCamera.h"
 #include "entity/entity.h"
 #include "../texture/texture.h"
+#include "../util/observable/observable.h"
 
 class Group;
 
@@ -35,8 +36,9 @@ namespace Component
             return content == str;
         }
 
-        tag(const std::string& str) : content(str)
-        {}
+        tag(const std::string &str) : content(str)
+        {
+        }
 
         tag() {}
     };
@@ -54,11 +56,11 @@ namespace Component
         // Rotation angle in degrees
         double rotation = 0.0f;
 
-        transform(const VectorD& _position, const VectorF& _scale, double _rotation) :
-            position(_position),
-            scale(_scale),
-            rotation(_rotation)
-            {}
+        transform(const VectorD &_position, const VectorF &_scale, double _rotation) : position(_position),
+                                                                                       scale(_scale),
+                                                                                       rotation(_rotation)
+        {
+        }
 
         transform() {}
     };
@@ -69,8 +71,9 @@ namespace Component
     {
         Group *content;
 
-        group(Group * g) : content(g)
-        {}
+        group(Group *g) : content(g)
+        {
+        }
     };
 
     // Sprite renderer component
@@ -253,11 +256,11 @@ namespace Component
     */
     class Tilemap : public script
     {
-        // Component rendering object in a tilemap
     public:
+        // Component rendering object in a tilemap
         class Drawer : public script
         {
-            static std::map<EntityID, Drawer *> instances;
+            static Observable< std::map<EntityID, Drawer *> > instances$;
 
         public:
             virtual ~Drawer();
@@ -347,7 +350,17 @@ namespace Component
 
         // Tile scale
         // Default : [1, 1]
-        VectorF scale = {1, 1};
+        VectorF _scale = {1, 1};
+
+        // Portion to draw
+        // Rect in pixels coordinate system
+        SDL_Rect* _viewport = nullptr;
+
+        // Tileset textures used by tiles
+        std::map< std::string, Texture > _tileTextures;
+
+        // Draw a tile
+        void _drawTile(tson::Tile&, int, int, SDL_Renderer*);
 
         // Draw a layer
         void _drawLayer(tson::Layer &, SDL_Renderer *);
@@ -362,7 +375,7 @@ namespace Component
         ~Tilemap();
 
         // Retrieve map data
-        tson::Map &getMap();
+        tson::Map &get();
 
         /**
          * Apply operation on each layers
@@ -371,6 +384,14 @@ namespace Component
          * @param layType layer type filter. Select all layers by default
          */
         void eachLayer(const std::function<void(tson::Layer &)> &, const std::vector<tson::LayerType> &layType = std::vector<tson::LayerType>());
+
+        /**
+         * Set viewport to be used on render
+         * viewport in SDL coordinate system
+         * 
+         * @param viewport if nullptr, draw the entire map
+         */
+        void setViewport(SDL_Rect*);
 
         void Render() override;
     };

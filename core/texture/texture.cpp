@@ -109,3 +109,9 @@ void Texture::draw(const SDL_Rect &src, const VectorI &dst, const VectorI &cente
     SDL_Point c = {center.x, center.y};
     SDL_RenderCopyEx(Renderer->renderer, _texture, &src, &d, rotation, &c, SDL_RendererFlip((flip.y << 1) | flip.x));
 }
+
+Texture& Texture::operator=(const Texture& texture)
+{
+    load(texture._file);
+    return *this;
+}

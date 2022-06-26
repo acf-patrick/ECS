@@ -10,6 +10,10 @@ namespace Component
 
     Tilemap::Tilemap(const std::string &rsc) : file(rsc)
     {
+        // Set Tilemap renderer
+        Drawer::instances$.submit([&](auto &instances)
+                                  { _drawer = instances[entity->id()]; });
+
         _map = tileson.parse(fs::path(rsc));
         if (_map->getStatus() == tson::ParseStatus::OK)
         {
@@ -27,11 +31,19 @@ namespace Component
             delete _drawer;
     }
 
+    tson::Map &Tilemap::get()
+    {
+        return *_map;
+    }
+
+    void Tilemap::setViewport(SDL_Rect *viewport)
+    {
+        _viewport = viewport;
+    }
+
     void Tilemap::Render()
     {
         // Creating default Drawer if no Tilemap::Drawer component added
-        auto eID = entity->id();
-        _drawer = Drawer::instances[eID];
         if (!_drawer)
         {
             _defaultDrawer = true;
@@ -50,13 +62,13 @@ namespace Component
                 process(layer);
     }
 
-    void Tilemap::_drawLayer(tson::Layer& layer, SDL_Renderer* renderer)
+    void Tilemap::_drawLayer(tson::Layer &layer, SDL_Renderer *renderer)
     {
         using type = tson::LayerType;
         switch (layer.getType())
         {
         case type::Group:
-            for (auto& lay: layer.getLayers())
+            for (auto &lay : layer.getLayers())
                 _drawLayer(lay, renderer);
             break;
 
@@ -65,14 +77,14 @@ namespace Component
             break;
 
         case type::ObjectGroup:
-            for (auto& object: layer.getObjects())
+            for (auto &object : layer.getObjects())
             {
                 auto objPos = object.getPosition();
                 auto objSize = object.getSize();
-                SDL_Rect objBoundingRect = { objPos.x, objPos.y, objSize.x, objSize.y };
+                SDL_Rect objBoundingRect = {objPos.x, objPos.y, objSize.x, objSize.y};
 
-                switch(object.getObjectType())
-                {                
+                switch (object.getObjectType())
+                {
                 case tson::ObjectType::Ellipse:
                     _drawer->drawEllipse(objBoundingRect, renderer);
                     break;
@@ -88,7 +100,7 @@ namespace Component
                 case tson::ObjectType::Polyline:
                     _drawer->drawPolyline(object.getPolylines(), renderer);
                     break;
-                    
+
                 case tson::ObjectType::Rectangle:
                     _drawer->drawRectangle(objBoundingRect, renderer);
                     break;
@@ -102,7 +114,57 @@ namespace Component
                     break;
                 }
             }
+            break;
+
+        case type::TileLayer:
+            tson::Tile* tile;
+
+            // Draw only tiles inside the viewport
+            if (_viewport)
+            {
+                auto &v = *_viewport;
+                auto tSize = _map->getTileSize();
+
+                for (int i = v.x / tSize.x; i <= (v.x + v.w) / tSize.x; ++i)
+                {
+                    for (int j = v.y / tSize.y; j <= (v.y + v.h) / tSize.y; ++j)
+                    {
+                        tile = layer.getTileData(i, j);
+                        if (tile)
+                            _drawTile(*tile, i, j, renderer);
+                    }
+                }
+            }
+            else if (!_map->isInfinite())
+            {
+                for (auto& [tPos, tile] : layer.getTileData())
+                {
+                    auto [x, y] = tPos;
+                    _drawTile(*tile, x, y, renderer);
+                }
+            }
+
+            break;
+        default:;
         }
+    }
+
+    void Tilemap::_drawTile(tson::Tile& tile, int tileX, int tileY, SDL_Renderer* renderer)
+    {
+        auto tSize = _map->getTileSize();
+        auto tileset = tile.getTileset();
+        auto tImage = tileset->getImagePath().string();
+        auto tRect = tile.getDrawingRect();
+        
+        SDL_Rect src = { tRect.x, tRect.y, tSize.x, tSize.y },
+            dst = { tileX*tSize.x, tileY*tSize.y, tSize.x * _scale.x, tSize.y * _scale.y };
+
+        auto& texture = _tileTextures[tImage];
+        if (!texture)
+            texture.load(tImage);
+        SDL_Texture* tTexture = texture.get();
+
+        SDL_RenderCopy(renderer, tTexture, &src, &dst);
     }
 
 };

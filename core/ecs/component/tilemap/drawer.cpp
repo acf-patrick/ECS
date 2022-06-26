@@ -2,16 +2,22 @@
 
 using Drawer = Component::Tilemap::Drawer;
 
-std::map<EntityID, Drawer*> Drawer::instances;
+Observable< std::map<EntityID, Drawer*> > Drawer::instances$;
 
 void Drawer::onAttach()
 {
-    instances[entity->id()] = this;
+    instances$.next([&](auto& instances)
+    {
+        instances[entity->id()] = this;
+    });
 }
 
 void Drawer::onDistach()
 {
-    instances.erase(entity->id());
+    instances$.next([&](auto& instances)
+    {
+        instances.erase(entity->id());
+    });
 }
 
 Drawer::~Drawer()

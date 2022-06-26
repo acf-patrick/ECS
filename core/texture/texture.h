@@ -52,6 +52,8 @@ public:
     // check if inner SDL Texture is null
     operator bool() const;
 
+    Texture& operator=(const Texture& );
+
     void draw(const VectorI& dst);
     void draw(const VectorI& dst, const Vector<bool>& flip, const VectorF& scale);
     void draw(const SDL_Rect& src, const VectorI& dst, const Vector<bool>& flip, const VectorF& scale);

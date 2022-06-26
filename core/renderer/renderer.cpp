@@ -85,7 +85,7 @@ void RenderManager::draw()
                 SDL_RenderCopyExF(renderer, c->backgroundImage.get(), &rect, &dest, rotation, NULL, flip);
 
             SDL_RenderCopyExF(renderer, layers[index].target, &rect, &dest, rotation, NULL, flip);
-        };
+        }
     }
 
     // camera draws
